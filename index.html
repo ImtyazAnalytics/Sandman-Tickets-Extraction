@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sandman Ticket → Excel</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#d9dee8;--accent:#17365d;--accent2:#24558d;--good:#137333;--bad:#b42318}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1500px;margin:0 auto;padding:28px}
+    .hero{background:linear-gradient(135deg,#17365d,#24558d);color:#fff;border-radius:18px;padding:26px 28px;margin-bottom:22px;box-shadow:0 12px 30px rgba(0,0,0,.08)}
+    .hero h1{margin:0 0 8px;font-size:30px}.hero p{margin:0;opacity:.9}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:22px;align-items:start}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 8px 22px rgba(0,0,0,.04)}
+    h2{margin:0 0 14px;font-size:20px}
+    label{display:block;font-weight:700;margin:14px 0 6px;font-size:14px}
+    input[type="file"]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}
+    .primary{background:var(--accent);color:#fff}.primary:hover{background:var(--accent2)}
+    .secondary{background:#eef2f7;color:var(--ink)}
+    .buttons,.row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .note,.small{color:var(--muted);font-size:13px;line-height:1.45}
+    .status{margin-top:14px;padding:10px 12px;border-radius:10px;background:#f2f4f7;font-size:14px;min-height:42px}
+    .ok{color:var(--good)}.err{color:var(--bad)}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+    table{border-collapse:collapse;width:max-content;min-width:100%;background:#fff}
+    th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;white-space:nowrap}
+    th{position:sticky;top:0;z-index:2;background:var(--accent);color:#fff;padding:10px;text-align:center;font-size:13px}
+    td input{border:0;padding:9px 10px;min-width:130px;outline:none;background:#fff}
+    td input:focus{background:#fffceb}
+    .badge{display:inline-block;background:#eef2f7;border-radius:999px;padding:5px 9px;margin:3px 3px 0 0;font-size:12px}
+    @media(max-width:950px){.grid{grid-template-columns:1fr}.wrap{padding:15px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>Sandman Ticket → Excel</h1>
+    <p>Upload scanned PDF tickets, review extracted data, and download Excel. No API key is entered on this page.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>1. Upload Tickets</h2>
+      <label>PDF Tickets</label>
+      <input id="files" type="file" accept="application/pdf" multiple>
+      <div class="buttons">
+        <button class="primary" id="extractBtn">Extract Tickets</button>
+        <button class="secondary" id="clearBtn">Clear</button>
+      </div>
+      <div id="status" class="status">Ready.</div>
+
+      <h2 style="margin-top:22px">Defaults</h2>
+      <span class="badge">Shipper → Sandman if blank</span>
+      <span class="badge">Pit/Dump Vendor → Sandman if blank</span>
+      <span class="badge">Time Type → Demurrage if time exists</span>
+      <p class="note" style="margin-top:16px">
+        Your OpenAI API key stays on the server as an environment variable and is never sent to the browser.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>2. Review & Export</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="headerRow"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="row-actions">
+        <button class="secondary" id="addRowBtn">+ Add Blank Row</button>
+        <button class="primary" id="downloadBtn">Download Excel</button>
+      </div>
+      <div class="small" style="margin-top:10px">Click any cell to correct a value before exporting.</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+  const COLUMNS = [
+    "Date","Ticket #","Shipper","Customer","Job #","From","Location","Truck #",
+    "Pit/Dump Vendor","Pit Ticket #","Driver","Time Start","Time Quit","Time Type",
+    "Material Type","Quantity"
+  ];
+  const EMPTY = Object.fromEntries(COLUMNS.map(c => [c,""]));
+  let rows = [];
+
+  const statusEl = document.getElementById("status");
+  const tableBody = document.getElementById("tableBody");
+  const headerRow = document.getElementById("headerRow");
+
+  COLUMNS.forEach(c => {
+    const th = document.createElement("th");
+    th.textContent = c;
+    headerRow.appendChild(th);
+  });
+
+  function setStatus(msg,type=""){
+    statusEl.textContent=msg;
+    statusEl.className="status "+type;
+  }
+
+  function normalizeRow(r={}){
+    const out={...EMPTY};
+    for(const c of COLUMNS) out[c]=r[c]==null?"":String(r[c]).trim();
+    if(!out["Shipper"]) out["Shipper"]="Sandman";
+    if(!out["Pit/Dump Vendor"]) out["Pit/Dump Vendor"]="Sandman";
+    out["Time Type"]=(out["Time Start"]||out["Time Quit"])?"Demurrage":"";
+    return out;
+  }
+
+  function renderTable(){
+    tableBody.innerHTML="";
+    rows.forEach((row,rIdx)=>{
+      const tr=document.createElement("tr");
+      COLUMNS.forEach(col=>{
+        const td=document.createElement("td");
+        const inp=document.createElement("input");
+        inp.value=row[col]??"";
+        inp.addEventListener("input",e=>{
+          rows[rIdx][col]=e.target.value;
+          if(col==="Time Start"||col==="Time Quit"){
+            rows[rIdx]["Time Type"]=(rows[rIdx]["Time Start"]||rows[rIdx]["Time Quit"])?"Demurrage":"";
+          }
+        });
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
+  }
+
+  async function pdfToImages(file){
+    const data=new Uint8Array(await file.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data}).promise;
+    const images=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const viewport=page.getViewport({scale:2});
+      const canvas=document.createElement("canvas");
+      canvas.width=viewport.width; canvas.height=viewport.height;
+      await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+      images.push(canvas.toDataURL("image/jpeg",0.90));
+    }
+    return images;
+  }
+
+  async function extractImage(imageDataUrl){
+    const response=await fetch("/api/extract",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({image:imageDataUrl})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || `Server error ${response.status}`);
+    return (data.tickets||[]).map(normalizeRow);
+  }
+
+  document.getElementById("extractBtn").addEventListener("click",async()=>{
+    const files=[...document.getElementById("files").files];
+    if(!files.length){setStatus("Choose at least one PDF.","err");return}
+    const btn=document.getElementById("extractBtn"); btn.disabled=true;
+    try{
+      let pages=0;
+      for(const file of files){
+        setStatus(`Reading ${file.name}...`);
+        const images=await pdfToImages(file);
+        pages+=images.length;
+        for(let i=0;i<images.length;i++){
+          setStatus(`Extracting ${file.name} — page ${i+1} of ${images.length}...`);
+          const extracted=await extractImage(images[i]);
+          rows.push(...extracted);
+          renderTable();
+        }
+      }
+      setStatus(`Done. Extracted ${rows.length} ticket(s) from ${pages} PDF page(s). Review, then download Excel.`,"ok");
+    }catch(err){
+      console.error(err);
+      setStatus(err.message||String(err),"err");
+    }finally{btn.disabled=false}
+  });
+
+  document.getElementById("clearBtn").addEventListener("click",()=>{
+    rows=[];renderTable();document.getElementById("files").value="";setStatus("Cleared.");
+  });
+
+  document.getElementById("addRowBtn").addEventListener("click",()=>{
+    rows.push(normalizeRow({}));renderTable();
+  });
+
+  document.getElementById("downloadBtn").addEventListener("click",()=>{
+    if(!rows.length){setStatus("There is no ticket data to export.","err");return}
+    const finalRows=rows.map(normalizeRow);
+    const ws=XLSX.utils.json_to_sheet(finalRows,{header:COLUMNS});
+    ws["!cols"]=COLUMNS.map(c=>({wch:Math.max(c.length+3,14)}));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Tickets");
+    const date=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb,`Sandman_Tickets_${date}.xlsx`);
+    setStatus("Excel file downloaded.","ok");
+  });
+
+  renderTable();
+</script>
+</body>
+</html>
