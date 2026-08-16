@@ -1,0 +1,98 @@
+SANDMAN SERVICES - APPROVED MASTER VALUES
+
+CUSTOMER RULE
+LGC / close match -> LGC Global
+
+FROM/SHIPPER RULE
+EGT / close match -> ED Giraud
+
+JOBS
+Hamilton Yard
+WS-742
+WS-725
+WS-743
+1316
+GLWA Plant Copeland St
+DWS-977
+DWS-969
+LG-23-MUPO
+
+TRUCKS
+1
+104-AB
+103-AB
+104-BK
+8
+26
+27
+31
+77
+221
+46
+001-AB
+009-AB
+003-AB
+006-AB
+013-AB
+0422-AB
+015-AB
+211-AB
+07-AB
+014-AB
+05-AB
+02-AB
+08-AB
+ABE
+069-AR
+90-Z
+20
+702-JD
+02-SC
+01-SC
+00-SC
+221-NT
+
+VENDORS / SHIPPERS
+Customer Dumpsite
+Sandman
+WF Bulk
+Ashley
+Recycled A
+Stoneco
+Farmer C
+Novi Crushed
+Tri County Agg
+I75 Aggregates
+Koenig
+Brumeister
+Levy
+ED Giraud
+Michigan Gravel and Sand
+Quest
+Miller Bro
+CB Asphalt
+La Femina
+
+MATERIALS
+1X3 Crushed Concrete
+6A Limestone
+Asphalt-Outbound
+Class 2 Sand
+Cobble Stone
+Cold Patch
+Concrete-Outbound
+Dirt-Outbound
+Dirt-Outbound- 1Way
+MDOT 21AA Crushed Concrete
+MDOT 21AA Limestone
+MDOT 2NS Sand
+Stoneco 1X3 Limestone
+Top Soil
+6A Crushed Concrete
+Dirt-Outbound- 2Way
+Dirt-Outbound Sandman Dump
+Dirt-Outbound Bellville
+Topsoil
+Dirt Outbound Two Yard
+Asphalt Outbound
+Rap

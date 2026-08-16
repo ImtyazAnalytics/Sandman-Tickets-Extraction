@@ -1,0 +1,25 @@
+SANDMAN SERVICES - PDF PROJECT SORTER
+
+WHAT IT DOES
+
+Example combined PDF:
+Page 1 -> WS-742
+Page 2 -> WS-743
+Page 3 -> WS-742
+Page 4 -> no approved project / pit ticket
+Page 5 -> WS-743
+Page 6 -> unknown
+
+OUTPUT:
+WS-742.pdf          -> pages 1 and 3
+WS-743.pdf          -> pages 2 and 5
+Other Pit Tickets.pdf -> pages 4 and 6
+
+You can also click "Download All as ZIP" to receive every separated PDF in one ZIP file.
+
+IMPORTANT
+- The project is detected from JOB#.
+- Approved project numbers are in api/classify.js.
+- Numeric matching is intentionally strict.
+- Pages that are not confidently recognized go into Other Pit Tickets.pdf rather than being assigned to the wrong project.
+- Each page classification uses the OpenAI API and consumes a small amount of API credit.
