@@ -1,0 +1,38 @@
+SANDMAN PDF SORTER - REVIEW FEATURE
+
+NEW WORKFLOW
+
+Upload PDFs
+  ->
+AI detects project for every page
+  ->
+Review & Assign Ticket Pages
+  ->
+View page image inside website
+  ->
+Move To existing project OR + New Project
+  ->
+Bulk move selected pages if needed
+  ->
+Select Other Pit Tickets to review them quickly
+  ->
+Finalize & Separate PDFs
+  ->
+Download project PDFs or one ZIP
+
+IMPORTANT:
+No final PDFs are created until you click "Finalize & Separate PDFs".
+This gives you a chance to catch project tickets that AI accidentally placed in Other Pit Tickets.
+
++ NEW PROJECT:
+Choose + New Project in a page's Move To dropdown.
+Type the new project name/number and press Enter.
+That project immediately becomes a valid group for the current batch.
+
+BULK MOVE:
+Check multiple pages.
+Choose a project under Bulk Move.
+Click Move Selected.
+
+PAGE REVIEW:
+Click the ticket thumbnail or View Page to open a large preview without leaving the website.
